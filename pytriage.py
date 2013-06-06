@@ -30,9 +30,10 @@ def file_m():
 		n.erase()
 		n.box()
 		n.refresh()
-		data=open((files[int(sel)-48])).read()
-		filename=files[int(sel)-48]
-		n.addstr((len(files))/2,1,"Opened:"+files[int(sel)-48])
+		if sel<=len(files)+48 and sel>=48:
+		 data=open((files[int(sel)-48])).read()
+		 filename=files[int(sel)-48]
+		 n.addstr((len(files))/2,1,"Opened:"+files[int(sel)-48])
 		n.getch()
 	elif k==ord("q"):
 		curses.endwin()
