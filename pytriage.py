@@ -9,7 +9,7 @@ global filename
 data=""
 hashes=""
 def file_m():
-  global data
+	global data
 	global filename
 	s = curses.newwin(6,10,2,1)
 	s.box()
