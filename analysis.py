@@ -14,12 +14,18 @@ def printable(data):
  pattern=re.compile(regexp)
  pat=pattern.findall(data)
  for k in common:
-  pat.remove(k)
+  try:
+   pat.remove(k)
+  except:
+   pass
  return pat
 def filetype(data):
- ms=magic.open(magic.MAGIC_NONE)
- ms.load()
- return ms.buffer(data)
+ try:
+  ms=magic.open(magic.MAGIC_NONE)
+  ms.load()
+  return ms.buffer(data)
+ except:
+  return magic.from_buffer(data)
 
 def peinfo(dat):
  try:
@@ -39,14 +45,18 @@ def ep(dat):
   return "error"
 
 def peimport(dat):
- try:
+ #try:
   pe=pefile.PE(data=dat)
   value=[]
   for entry in pe.DIRECTORY_ENTRY_IMPORT:
+   importf=[]
+   for i in entry.imports:
+	   importf.append(i.name)
    value.append(entry.dll)
+   value.append(importf)
   return value
- except:
-  return ["error"]
+ #except:
+  #return ["error"]
 
 def peexport(dat):
  try:
@@ -56,7 +66,7 @@ def peexport(dat):
    value.append(entry.name)
   return value
  except:
-  return ["error"]
+  return ["No exported functions"]
 
 
 def yarac(data):
