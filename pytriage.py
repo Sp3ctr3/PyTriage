@@ -1,165 +1,136 @@
-import sys
-import analysis
+import wx
+import pefile
 import avcheck
-import curses 
+import analysis
 import os
-global data
-global hashes
-global filename
-data=""
-hashes=""
-def file_m():
-	global data
-	global filename
-	s = curses.newwin(6,10,2,1)
-	s.box()
-	s.addstr(1,2,"O",hotkey)
-	s.addstr(1,3,"pen")
-	s.addstr(2,2,"Q",hotkey)
-	s.addstr(2,3,"uit")
-	s.refresh()
-	k=s.getch()
-	if k==ord("o"):
-		files=os.listdir(os.getcwd())
-		n=curses.newwin(len(files)+2,30,5,30)
-		n.box()
-		n.refresh()
-		for i in range(len(files)):
-			n.addstr(i+1,1,str(i)+")"+files[i])
-		sel=n.getch()
-		n.erase()
-		n.box()
-		n.refresh()
-		if sel<=len(files)+48 and sel>=48:
-		 data=open((files[int(sel)-48])).read()
-		 filename=files[int(sel)-48]
-		 n.addstr((len(files))/2,1,"Opened:"+files[int(sel)-48])
-		n.getch()
-	elif k==ord("q"):
-		curses.endwin()
-		sys.exit()
-	screen.hline(2, 1, curses.ACS_HLINE, 77)
-	s.refresh()
+class maingui(wx.Frame):
 
-def info_m():
-	if data is not "":
-	 s = curses.newwin(19,77,3,1)
-	 s.box()
-	 s.hline(4, 1, curses.ACS_HLINE, 75)
-	 s.addstr(1,2,"File: "+filename)
-	 s.hline(2, 1, curses.ACS_HLINE, 75)
-	 s.addstr(3,32,"ANALYSIS",curses.A_BOLD)
-	 global hashes
-	 hashes=analysis.hashes(data)
-	 s.addstr(5,32,"Hashes",curses.A_UNDERLINE)
-	 s.addstr(6,1,"MD5:"+hashes[0])
-	 s.addstr(7,1,"SHA1:"+hashes[1])
-	 s.hline(8, 1, curses.ACS_HLINE, 75)
-	 s.addstr(9,32,"PE Section",curses.A_UNDERLINE)
-	 pe=analysis.peinfo(data)
-	 for i in range(len(pe)):
-	  s.addstr(10+i,1,pe[i])
-	 s.hline(14, 1, curses.ACS_HLINE, 75)
-	 s.addstr(15,32,"File Type",curses.A_UNDERLINE)
-	 s.addstr(16,1,analysis.filetype(data))
-	 s.refresh()
-	 k=s.getch()
-	 s.erase()
-	 s.refresh()
+ def __init__(self,parent,title):
+  wx.Frame.__init__(self,parent,title=title,size=(400,300))
+  self.contents=""
+  filemenu = wx.Menu()
+  self.CreateStatusBar()
+  opn=filemenu.Append(wx.ID_ANY, "&Open","Open a new file")
+  self.Bind(wx.EVT_MENU,self.OnOpen,opn)
+  filemenu.AppendSeparator()
+  about=filemenu.Append(wx.ID_ABOUT,"&About","About PyTriage")
+  filemenu.AppendSeparator()
+  self.Bind(wx.EVT_MENU,self.OnAbout,about)
+  exit=filemenu.Append(wx.ID_EXIT,"E&xit","Quit the program")
+  self.Bind(wx.EVT_MENU,self.OnExit,exit)
+  infomenu=wx.Menu()
+  ha=infomenu.Append(wx.ID_ANY,"&Run analysis","")
+  self.Bind(wx.EVT_MENU,self.RunAn,ha)
+  advmenu=wx.Menu()
+  impo=advmenu.Append(wx.ID_ANY,"&Imports and Exports","Get a list of imported and exported functions")
+  self.Bind(wx.EVT_MENU,self.ImporEx,impo)
+  submenu=wx.Menu()
+  virtot=submenu.Append(wx.ID_ANY,"VirusTotal","Submit to VirusTotal for analysis")
+  self.Bind(wx.EVT_MENU,self.VirTot,virtot)
+  genmenu=wx.Menu()
+  clamavsig=genmenu.Append(wx.ID_ANY,"ClamAV","Generate ClamAV signature")
+  self.Bind(wx.EVT_MENU,self.ClamAV,clamavsig)
+  yarasig=genmenu.Append(wx.ID_ANY,"YARA","Generate YARA signature")
+  self.Bind(wx.EVT_MENU,self.YaraSig,yarasig)
+  repmenu=wx.Menu()
+  reportm=repmenu.Append(wx.ID_ANY,"Generate Generic Report","Generates a report on PE file characteristics")
+  self.Bind(wx.EVT_MENU,self.report_m,reportm)
+  menu=wx.MenuBar()
+  menu.Append(filemenu,"&File")
+  menu.Append(infomenu,"&Info")
+  menu.Append(advmenu,"&Advanced")
+  menu.Append(submenu,"&Submit")
+  menu.Append(genmenu,"&Generate")
+  menu.Append(repmenu,"&Report")
+  self.SetMenuBar(menu)
+  self.Show(True)
 
-def adv_m():
-	if data is not "":
-	 s = curses.newwin(19,77,3,1)
-	 s.box()
-	 EP=analysis.ep(data)
-	 if EP is not "error":
-	  s.addstr(1,32,"Entry Point: "+hex(EP))
-	 s.hline(2, 1, curses.ACS_HLINE, 75)
-	 s.vline(3, 40, curses.ACS_VLINE, 15)
-	 s.addstr(3,10,"Imports",hotkey)
-	 imports=analysis.peimport(data)
-	 for value in range(len(imports)):
-	  s.addstr(value+5,1,imports[value])
-	 s.addstr(3,50,"Exports",hotkey)
-	 exports=analysis.peexport(data)
-	 for value in range(len(exports)):
-	  s.addstr(value+5,45,exports[value])
-	 s.refresh()
-	 k=s.getch()
-	 s.erase()
-	 s.refresh()
+ def OnOpen(self,e):
+   self.dirname=''
+   dlgO= wx.FileDialog(self,"Choose a file",self.dirname,"","*.*",wx.OPEN)
+   if dlgO.ShowModal()== wx.ID_OK:
+     self.filename=dlgO.GetFilename()
+     self.dirname=dlgO.GetDirectory()
+     malw=open(os.path.join(self.dirname,self.filename),'r')
+     self.contents=malw.read()
+     dlgO2=wx.MessageDialog(self,"Opened file: "+self.filename,"PyTriage",wx.OK)
+     dlgO2.ShowModal()
+     dlgO2.Destroy()
+     malw.close()
+   dlgO.Destroy()
+ def RunAn(self,e):
+  self.box=wx.BoxSizer(wx.VERTICAL)
+  self.control=[]
+  self.panels=[]
+  for i in range(3):
+   self.panels.append(wx.Panel(self))
+   self.box.Add(self.panels[i],.5,wx.EXPAND)
+   self.control.append(wx.TextCtrl(self,style=wx.TE_MULTILINE|wx.TE_READONLY))
+   self.box.Add(self.control[i],1,wx.EXPAND)
+  self.SetAutoLayout(True)
+  wx.StaticText(self.panels[0],-1,"Filetype",style=wx.ALIGN_CENTER_HORIZONTAL)
+  self.control[0].SetValue(analysis.filetype(self.contents))
+  wx.StaticText(self.panels[1],-1,"Hashes")
+  self.control[1].SetValue("MD5:"+analysis.hashes(self.contents)[0]+"\nSHA1:"+analysis.hashes(self.contents)[1])
+  wx.StaticText(self.panels[2],-1,"PE Sections")
+  self.control[2].SetValue("\n".join((analysis.peinfo(self.contents))))
+  self.SetSizer(self.box)
+  self.Layout()
+	 
+ def ImporEx(self,e):
+	 self.rows=wx.BoxSizer(wx.HORIZONTAL)
+	 self.column=[]
+	 self.column.append(wx.TextCtrl(self,style=wx.TE_MULTILINE|wx.TE_READONLY))
+	 self.column.append(wx.TextCtrl(self,style=wx.TE_MULTILINE|wx.TE_READONLY))
+	 for i in self.column:
+		 self.rows.Add(i,1,wx.EXPAND)
+	 self.SetAutoLayout(True)
+	 importdata= analysis.peimport(self.contents)
+	 importstr=""
+	 for i in range(len(importdata)):
+		 if i%2==0:
+			 importstr+=importdata[i]+"\n"
+		 else:
+			 for i in importdata[i]: 
+			   importstr+= "	"+i+"\n"
+	 self.column[0].SetValue("Imports\n"+importstr)
+	 self.column[1].SetValue("Exports\n"+"\n".join(analysis.peexport(self.contents)))
+	 self.SetSizer(self.rows)
+	 self.Layout()
+	 
+ def VirTot(self,e):
+     self.virresult=wx.BoxSizer(wx.VERTICAL)
+     self.virbox=wx.TextCtrl(self,style=wx.TE_MULTILINE|wx.TE_READONLY)
+     self.virresult.Add(self.virbox,1,wx.EXPAND)
+     self.SetSizer(self.virresult)
+     self.Layout()
+     self.virbox.SetValue(avcheck.check(analysis.hashes(self.contents)[0],self.filename))
+     
+ def ClamAV(self,e):
+	 analysis.clams(self.contents)
+	 dlgC=wx.MessageDialog(self,"ClamAV signatures written to clam.hdb","PyTriage",wx.OK)
+	 dlgC.ShowModal()
+	 dlgC.Destroy()
 
-def submit_m():
-	if data is not "" and hashes is not "":
-	 s = curses.newwin(4,40,5,25)
-	 s.box()
-	 s.addstr(1,1,avcheck.check(hashes[0],filename))
-	 s.getch()
-	 s.erase()
-	 s.refresh()
-	
-def generate_m():
-	if data is not "":
-	 s = curses.newwin(4,30,5,30)
-	 s.box()
-	 s.addstr(1,1,"C",hotkey)
-	 s.addstr(1,2,"lamAV")
-	 s.addstr(2,1,"Y",hotkey)
-	 s.addstr(2,2,"ara")
-	 k=s.getch()
-	 if k==ord("c"):
-	  analysis.clams(data)
-	  s.erase()
-	  s.addstr(1,1,"Signature written to clam.hdb")
-	  s.refresh()
-	 if k==ord("y"):
-	  analysis.yarac(analysis.printable(data))
-	  s.erase()
-	  s.addstr(1,1,"Signature written to sig.yara")
-	  s.refresh()
-	  s.getch()
-	  s.erase()
-	  s.refresh()
+ def YaraSig(self,e):
+	 analysis.yarac(analysis.printable(self.contents))
+	 dlgY=wx.MessageDialog(self,"YARA signatures written to sig.yara","PyTriage",wx.OK)
+	 dlgY.ShowModal()
+	 dlgy.Destroy()
+	 
+ def report_m(self,e):
+	 pe=pefile.PE(data=self.contents)
+	 info_m=pe.dump_info()
+	 open("Report.txt","w").write(info_m)
 
-if __name__=="__main__":
- stdscr = curses.initscr() 
- curses.start_color()
- curses.noecho() 
- curses.curs_set(0) 
- curses.init_pair(1, curses.COLOR_RED, curses.COLOR_WHITE)
- stdscr.keypad(1) 
- global screen
- hotkey=curses.color_pair(1)
- screen = stdscr.subwin(23, 79, 0, 0)
- screen.box()
- screen.hline(2, 1, curses.ACS_HLINE, 77)
- screen.addstr(1,1,"F",hotkey)
- screen.addstr(1,2,"ile")
- screen.hline(1,10,curses.ACS_VLINE,1)
- screen.addstr(1,11,"I",hotkey)
- screen.addstr(1,12,"nfo")
- screen.hline(1,20,curses.ACS_VLINE,1)
- screen.addstr(1,21,"A",hotkey)
- screen.addstr(1,22,"dvanced")
- screen.hline(1,30,curses.ACS_VLINE,1)
- screen.addstr(1,31,"S",hotkey)
- screen.addstr(1,32,"ubmit")
- screen.hline(1,40,curses.ACS_VLINE,1)
- screen.addstr(1,41,"G",hotkey)
- screen.addstr(1,42,"enerate")
- screen.refresh()
- while True: 
-    event = screen.getch() 
-    if event == ord("q"): break 
-    elif event == ord("f"):
- 		file_m()
-    elif	event == ord("i"):
- 		info_m()
-    elif event == ord("g"):
- 		generate_m()
-    elif event==ord("s"):
- 		submit_m()
-    elif event==ord("a"):
- 		adv_m()
- curses.endwin()
+ def OnAbout(self,e):
+   dlgA= wx.MessageDialog(self,"PyTriage is an open source malware analysis tool developed by Sp3ctr3 aka Yashin Mehaboobe","About",wx.OK)
+   dlgA.ShowModal()
+   dlgA.Destroy()
+ 
+ def OnExit(self,e):
+   self.Close(True)
 
+app=wx.App(False)
+frame=maingui(None,"PyTriage")
+app.MainLoop()
