@@ -1,4 +1,6 @@
 import magic
+import pydasm
+import binascii
 import pefile
 import hashlib
 import re
@@ -45,7 +47,7 @@ def ep(dat):
   return "error"
 
 def peimport(dat):
- #try:
+ try:
   pe=pefile.PE(data=dat)
   value=[]
   for entry in pe.DIRECTORY_ENTRY_IMPORT:
@@ -55,8 +57,20 @@ def peimport(dat):
    value.append(entry.dll)
    value.append(importf)
   return value
- #except:
-  #return ["error"]
+ except:
+  return ["error"]
+
+def disassembl(dat):
+	mal=binascii.hexlify(dat)
+	assem=""
+	offset=0
+	while offset < len(mal):
+		i=pydasm.get_instruction(mal[offset:],pydasm.MODE_32)
+		assem+=pydasm.get_instruction_string(i, pydasm.FORMAT_INTEL, 0)+"\n"
+		if not i:
+			break
+		offset+=i.length
+	return assem
 
 def peexport(dat):
  try:
