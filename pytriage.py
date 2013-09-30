@@ -32,6 +32,8 @@ class maingui(wx.Frame):
   self.Bind(wx.EVT_MENU,self.ClamAV,clamavsig)
   yarasig=genmenu.Append(wx.ID_ANY,"YARA","Generate YARA signature")
   self.Bind(wx.EVT_MENU,self.YaraSig,yarasig)
+  disas=advmenu.Append(wx.ID_ANY,"Disassemble","Show disassembled code")
+  self.Bind(wx.EVT_MENU,self.disass_m,disas)
   repmenu=wx.Menu()
   reportm=repmenu.Append(wx.ID_ANY,"Generate Generic Report","Generates a report on PE file characteristics")
   self.Bind(wx.EVT_MENU,self.report_m,reportm)
@@ -97,7 +99,15 @@ class maingui(wx.Frame):
 	 self.column[1].SetValue("Exports\n"+"\n".join(analysis.peexport(self.contents)))
 	 self.SetSizer(self.rows)
 	 self.Layout()
-	 
+
+ def disass_m(self,e):
+     self.virresult=wx.BoxSizer(wx.VERTICAL)
+     self.virbox=wx.TextCtrl(self,style=wx.TE_MULTILINE|wx.TE_READONLY)
+     self.virresult.Add(self.virbox,1,wx.EXPAND)
+     self.SetSizer(self.virresult)
+     self.Layout()
+     self.virbox.SetValue(analysis.disassembl(self.contents))
+
  def VirTot(self,e):
      self.virresult=wx.BoxSizer(wx.VERTICAL)
      self.virbox=wx.TextCtrl(self,style=wx.TE_MULTILINE|wx.TE_READONLY)
