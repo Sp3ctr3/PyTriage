@@ -11,9 +11,11 @@ Requires magic,simplejson and pefile modules in python.
 Installing dependencies
 -----------------------
 
+```shell
 sudo apt-get install python-magic
 sudo pip install simplejson
 sudo pip install pefile
+```
 
 Getting started
 ---------------
