@@ -6,7 +6,7 @@ A python script for easy static analysis and automatic signature generation of m
 Dependencies
 ------------
 
-Requires magic,simplejson and pefile modules in python.
+Requires magic,simplejson and pefile modules in python. Also requires the libdasm library for disassembly.
 
 Installing dependencies
 -----------------------
@@ -15,6 +15,13 @@ Installing dependencies
 sudo apt-get install python-magic
 sudo pip install simplejson
 sudo pip install pefile
+wget https://libdasm.googlecode.com/files/libdasm-1.5.tar.gz
+tar -zxvf libdasm-1.5.tar.gz
+cd libdasm-1.5/
+make
+sudo make install
+cd pydasm
+sudo python setup.py install
 ```
 
 Getting started
